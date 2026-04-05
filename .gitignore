@@ -1,0 +1,12 @@
+# OS / explorer noise
+.DS_Store
+Thumbs.db
+
+# Editor settings
+.idea/
+.vscode/
+
+# Local scratch files
+*.bak
+*.log
+*.tmp

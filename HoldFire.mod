@@ -8,5 +8,6 @@ return {
 			mod_localization = "HoldFire/scripts/mods/HoldFire/HoldFire_localization",
 		})
 	end,
+	load_before = { "Skitarius" },
 	packages = {},
 }

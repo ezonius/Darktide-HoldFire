@@ -65,6 +65,12 @@ return {
 	toggle_mod_keybind_description = {
 		en = "Turns Enable Mod on or off while in mission.",
 	},
+	enable_skitarius_omnissiah_hook = {
+		en = "Enable Skitarius Compatibility",
+	},
+	enable_skitarius_omnissiah_hook_description = {
+		en = "When enabled, HoldFire will also block inputs from the Skitarius mod if no valid target is present.",
+	},
 	target_elites = {
 		en = "Target Elites",
 	},

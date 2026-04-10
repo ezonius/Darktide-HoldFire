@@ -29,6 +29,11 @@ return {
 						function_name = "toggle_mod_enabled",
 					},
 					{
+						setting_id = "enable_skitarius_omnissiah_hook",
+						type = "checkbox",
+						default_value = true,
+					},
+					{
 						setting_id = "purge_weapon_profiles",
 						type = "checkbox",
 						default_value = false,

@@ -221,6 +221,7 @@ PER_WEAPON_SETTING_DEFAULTS = {
 
 ALL_SETTING_DEFAULTS = {
     enable_mod = true,
+    enable_skitarius_omnissiah_hook = true,
     toggle_mod_keybind = {},
     purge_weapon_profiles = false,
     ads_filter = "ads_hip",
@@ -788,6 +789,7 @@ end
 local function input_hook(func, self, action_name)
     local value = func(self, action_name)
     if not value or not BLOCKED_INPUTS[action_name] then return value end
+
     if not should_allow_fire_now() then return false end
     return value
 end
@@ -823,7 +825,7 @@ mod:hook_safe(CLASS.PlayerUnitWeaponExtension, "fixed_update", function(self, un
 end)
 
 --mod:hook_safe(CLASS.PlayerUnitSmartTargetingExtension, "fixed_update", function(self)
-    -- This hook's logic is now handled by other update hooks and inlined targeting.
+-- This hook's logic is now handled by other update hooks and inlined targeting.
 --end)
 
 mod:hook_safe(CLASS.HudElementCrosshair, "update", function(self)
@@ -869,7 +871,7 @@ mod:hook(CLASS.ActionHandler, "start_action",
                     break
                 end
             end
-            if is_blocked and string_find(action_name, "zoom", 1, true) and not should_allow_fire_now() then
+            if current_settings.enable_skitarius_omnissiah_hook and is_blocked and string_find(action_name, "zoom", 1, true) and not should_allow_fire_now() then
                 return
             end
         end
@@ -879,7 +881,8 @@ mod:hook(CLASS.ActionHandler, "start_action",
 
 mod:hook("SkitariusOmnissiah", "omnissiah", function(func, self, queried_input, user_value)
     local outcome = func(self, queried_input, user_value)
-    if BLOCKED_INPUTS[queried_input] and outcome then
+
+    if current_settings.enable_skitarius_omnissiah_hook and BLOCKED_INPUTS[queried_input] and outcome then
         if not should_allow_fire_now() then return false end
     end
     return outcome
@@ -939,6 +942,8 @@ end
 mod.on_setting_changed = function(setting_id)
     if setting_id == "enable_mod" then
         refresh_enabled_setting()
+    elseif setting_id == "enable_skitarius_omnissiah_hook" then
+        current_settings.enable_skitarius_omnissiah_hook = mod:get(setting_id)
     elseif setting_id == "purge_weapon_profiles" and mod:get("purge_weapon_profiles") then
         mod.reset_saved_weapon_profiles()
         return
@@ -963,3 +968,7 @@ if saved_version ~= PROFILE_KEY_SCHEMA_VERSION then
 end
 
 refresh_enabled_setting()
+current_settings.enable_skitarius_omnissiah_hook = mod:get("enable_skitarius_omnissiah_hook")
+if current_settings.enable_skitarius_omnissiah_hook == nil then
+    current_settings.enable_skitarius_omnissiah_hook = ALL_SETTING_DEFAULTS.enable_skitarius_omnissiah_hook
+end

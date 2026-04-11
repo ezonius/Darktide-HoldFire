@@ -1,4 +1,6 @@
-return {
+local WeaponTemplates = require("scripts/settings/equipment/weapon_templates/weapon_templates")
+
+local localizations = {
 	mod_name = {
 		en = "HoldFire",
 	},
@@ -16,6 +18,12 @@ return {
 	},
 	weapon_settings_description = {
 		en = "These settings are saved per weapon, so each ranged weapon can keep its own allowed target and fire-blocking rules.",
+	},
+	ranged_weapon_selection = {
+		en = "Weapon Selection",
+	},
+	global_ranged = {
+		en = "CURRENTLY EQUIPPED",
 	},
 	ads_filter = {
 		en = "ADS / Hipfire Filter",
@@ -108,3 +116,26 @@ return {
 		en = "Allow firing at Heretic Idols and active hazard props such as barrels, gas tanks, or hanging explosives. Pickups and Medicae stations are excluded.",
 	},
 }
+
+local family_prefix = "loc_weapon_family_"
+local pattern_prefix = "loc_weapon_pattern_"
+local mark_prefix = "loc_weapon_mark_"
+
+for weapon, _ in pairs(WeaponTemplates) do
+	local localized_family = Localize(family_prefix .. weapon)
+	local localized_pattern = Localize(pattern_prefix .. weapon)
+	if not localized_pattern or string.find(localized_pattern, "unlocalized") then
+		local alt_pattern = weapon:gsub("_m%d+", "_m1")
+		localized_pattern = Localize(pattern_prefix .. alt_pattern)
+	end
+	local localized_mark = Localize(mark_prefix .. weapon)
+
+	local localized = localized_family and localized_pattern and localized_mark and string.format("%s %s %s", localized_pattern, localized_mark, localized_family)
+	if localized and not string.find(localized, "unlocalized") then
+		localizations[weapon] = {
+			en = localized
+		}
+	end
+end
+
+return localizations

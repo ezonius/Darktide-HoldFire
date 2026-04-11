@@ -65,6 +65,12 @@ return {
 	toggle_mod_keybind_description = {
 		en = "Turns Enable Mod on or off while in mission.",
 	},
+	toggle_ads_filter_keybind = {
+		en = "Toggle ADS Filter Keybind",
+	},
+	toggle_ads_filter_keybind_description = {
+		en = "Toggles between 'Disabled' and your previous ADS filter setting for the current weapon.",
+	},
 	enable_skitarius_omnissiah_hook = {
 		en = "Enable Skitarius Compatibility",
 	},

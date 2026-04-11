@@ -223,6 +223,7 @@ ALL_SETTING_DEFAULTS = {
     enable_mod = true,
     enable_skitarius_omnissiah_hook = true,
     toggle_mod_keybind = {},
+    toggle_ads_filter_keybind = {},
     purge_weapon_profiles = false,
     ads_filter = "ads_hip",
     target_radius = 0.10,
@@ -544,6 +545,35 @@ mod.toggle_target_destructibles = function()
     toggle_target_setting("target_destructibles", "HoldFire destructibles")
 end
 
+mod.toggle_ads_filter_enabled = function()
+    local weapon_name = current_weapon_profile_name()
+    if not weapon_name or weapon_name == "" then return end
+
+    local profile = ensure_weapon_profile(weapon_name)
+    local current_filter = profile.ads_filter
+
+    if current_filter ~= "disabled" then
+        profile.ads_filter_last_on_value = current_filter
+        profile.ads_filter = "disabled"
+    else
+        local last_on = profile.ads_filter_last_on_value or "ads_hip"
+        profile.ads_filter = last_on
+        profile.ads_filter_last_on_value = nil
+    end
+
+    save_weapon_profiles(weapon_profiles())
+
+    local filter_text = mod:localize(profile.ads_filter)
+    mod:notify(string.format("HoldFire ADS Filter: %s", filter_text))
+
+    -- Force refresh of current settings if this is the active weapon
+    if weapon_name == cached_weapon_profile_name then
+        applying_weapon_profile = true
+        mod:set("ads_filter", profile.ads_filter)
+        applying_weapon_profile = false
+    end
+end
+
 function mod.toggle_mod_enabled()
     setting_enabled = not refresh_enabled_setting()
     mod:set("enable_mod", setting_enabled)
@@ -768,7 +798,8 @@ local function hovered_priority_target()
                 OBJECT_SMART_TARGETING_TEMPLATE.precision_target.within_distance_to_box_x = dh_tol * 1.5
                 OBJECT_SMART_TARGETING_TEMPLATE.precision_target.within_distance_to_box_y = dv_tol * 1.5
                 player_smart_targeting_extension._precision_target_aim_assist:update_precision_target(
-                    player_smart_targeting_extension._unit, OBJECT_SMART_TARGETING_TEMPLATE, ray_origin, forward, right, up,
+                    player_smart_targeting_extension._unit, OBJECT_SMART_TARGETING_TEMPLATE, ray_origin, forward, right,
+                    up,
                     player_smart_targeting_extension._smart_tag_targeting_data, current_frame,
                     player_smart_targeting_extension._visibility_cache,
                     player_smart_targeting_extension._visibility_check_frame

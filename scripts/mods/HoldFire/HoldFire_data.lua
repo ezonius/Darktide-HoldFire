@@ -29,6 +29,15 @@ return {
 						function_name = "toggle_mod_enabled",
 					},
 					{
+						setting_id = "toggle_ads_filter_keybind",
+						tooltip = "toggle_ads_filter_keybind_description",
+						type = "keybind",
+						default_value = {},
+						keybind_trigger = "pressed",
+						keybind_type = "function_call",
+						function_name = "toggle_ads_filter_enabled",
+					},
+					{
 						setting_id = "enable_skitarius_omnissiah_hook",
 						type = "checkbox",
 						default_value = true,

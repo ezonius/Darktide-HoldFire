@@ -396,6 +396,11 @@ local function current_weapon_profile_name()
     add_id(weapon_template and weapon_template.name)
     add_id(ranged_weapon and ranged_weapon.name)
 
+    -- Improved per-weapon saves: Use the base template name as a fallback for stability
+    if count == 0 and weapon_template then
+        add_id(weapon_template.base_template_name)
+    end
+
     return count > 0 and table.concat(_profile_identifiers, "|", 1, count) or nil
 end
 
@@ -756,6 +761,22 @@ local function hovered_priority_target()
             target_data = player_smart_targeting_extension:smart_tag_targeting_data()
             target_unit = target_data and target_data.unit
             cached_priority_target = resolve_destructible_target(target_unit) ~= nil or raycasted_destructible_target()
+
+            -- Improved destructible check: If still false, try a wider raycast for "cursed" destructibles
+            if not cached_priority_target then
+                -- Briefly increase tolerance for a second check
+                OBJECT_SMART_TARGETING_TEMPLATE.precision_target.within_distance_to_box_x = dh_tol * 1.5
+                OBJECT_SMART_TARGETING_TEMPLATE.precision_target.within_distance_to_box_y = dv_tol * 1.5
+                player_smart_targeting_extension._precision_target_aim_assist:update_precision_target(
+                    player_smart_targeting_extension._unit, OBJECT_SMART_TARGETING_TEMPLATE, ray_origin, forward, right, up,
+                    player_smart_targeting_extension._smart_tag_targeting_data, current_frame,
+                    player_smart_targeting_extension._visibility_cache,
+                    player_smart_targeting_extension._visibility_check_frame
+                )
+                target_data = player_smart_targeting_extension:smart_tag_targeting_data()
+                target_unit = target_data and target_data.unit
+                cached_priority_target = resolve_destructible_target(target_unit) ~= nil
+            end
         end
     end
 

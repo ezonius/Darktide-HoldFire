@@ -170,16 +170,16 @@ return {
 					{
 						setting_id = "target_radius",
 						type = "numeric",
-						default_value = 0.10,
-						range = { 0.01, 0.20 },
-						decimals_number = 2,
+						default_value = 0.100,
+						range = { 0.001, 0.200 },
+						decimals_number = 3,
 					},
 					{
 						setting_id = "destructible_radius",
 						type = "numeric",
-						default_value = 0.10,
-						range = { 0.01, 0.20 },
-						decimals_number = 2,
+						default_value = 0.100,
+						range = { 0.001, 0.200 },
+						decimals_number = 3,
 					},
 					{
 						setting_id = "target_elites",

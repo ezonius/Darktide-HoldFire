@@ -15,13 +15,22 @@ local Actor = Actor
 local PhysicsWorld = PhysicsWorld
 local Vector3 = Vector3
 local string_find = string.find
+local string_sub = string.sub
 local table_clear = table.clear
 local math_clamp = math.clamp
+local math_huge = math.huge
+local pairs = pairs
+local ipairs = ipairs
+local next = next
+local type = type
 
 local Unit_alive = Unit.alive
 local ScriptUnit_has_extension = ScriptUnit.has_extension
 local WeaponTemplate_is_ranged = WeaponTemplate.is_ranged
 local WeaponTemplate_current_weapon_template = WeaponTemplate.current_weapon_template
+
+local POSITION_LOOKUP = POSITION_LOOKUP
+local ScriptUnit_extension = ScriptUnit.extension
 
 local HAZARD_CONTENT = HazardPropSettings.hazard_content
 local HAZARD_STATE = HazardPropSettings.hazard_state
@@ -42,6 +51,8 @@ local cached_weapon_display_name = "global_ranged"
 local setting_enabled = true
 local applying_weapon_profile = false
 local can_block_cached = false
+local local_player_unit_cached = nil
+local broadphase_system_cached = nil
 
 -- Performance: Reusable tables to avoid allocation in hot paths
 local _profile_identifiers = {}
@@ -273,10 +284,10 @@ ALL_SETTING_DEFAULTS = {
 }
 
 local BLOCKED_ACTION_TOKENS = {
-    shoot = true,
-    rapid = true,
-    trigger = true,
-    flame = true,
+    "shoot",
+    "rapid",
+    "trigger",
+    "flame",
 }
 
 local MAX_TARGET_RAYCAST_DISTANCE = 9999
@@ -323,8 +334,16 @@ local function current_ads_input_state()
 end
 
 local function local_player_unit()
+    if local_player_unit_cached and Unit_alive(local_player_unit_cached) then
+        return local_player_unit_cached
+    end
+
     local player = local_player()
-    return player and player.player_unit
+    local unit = player and player.player_unit
+    if unit then
+        local_player_unit_cached = unit
+    end
+    return unit
 end
 
 local function current_weapon_template()
@@ -621,13 +640,16 @@ end
 local function is_destructible_target(target_unit)
     if not target_unit or not Unit_alive(target_unit) then return false end
     if ScriptUnit_has_extension(target_unit, "health_station_system") then return false end
-    if (Unit.has_data(target_unit, "is_pickup") and Unit.get_data(target_unit, "is_pickup")) or (Unit.has_data(target_unit, "pickup_type") and Unit.get_data(target_unit, "pickup_type") ~= nil) then return false end
+
+    -- Pickup check: using get_data directly is faster than has_data + get_data
+    local is_pickup = Unit.get_data(target_unit, "is_pickup")
+    local pickup_type = Unit.get_data(target_unit, "pickup_type")
+    if is_pickup or pickup_type ~= nil then return false end
 
     -- Idol/Destructible check
     local destructible_ext = ScriptUnit_has_extension(target_unit, "destructible_system")
     if destructible_ext then
-        local collectible_type = Unit.has_data(target_unit, "collectible_type") and
-            Unit.get_data(target_unit, "collectible_type")
+        local collectible_type = Unit.get_data(target_unit, "collectible_type")
         if collectible_type == HERETIC_IDOL_COLLECTIBLE_TYPE or destructible_ext._collectible_data then
             local info = destructible_ext._destruction_info
             return not info or (info.current_stage_index or 0) > 0
@@ -653,7 +675,12 @@ local function resolve_destructible_target(target_unit, target_position)
         (target_unit and ((POSITION_LOOKUP and POSITION_LOOKUP[target_unit]) or Unit.world_position(target_unit, 1)))
     if not pos then return nil end
 
-    local broadphase_system = Managers.state.extension:system("broadphase_system")
+    local broadphase_system = broadphase_system_cached
+    if not broadphase_system then
+        local extension_manager = Managers.state and Managers.state.extension
+        broadphase_system = extension_manager and extension_manager:system("broadphase_system")
+        broadphase_system_cached = broadphase_system
+    end
     local broadphase = broadphase_system and broadphase_system.broadphase
     if not broadphase then return nil end
 
@@ -719,9 +746,13 @@ local function hovered_priority_target()
 
     local h_tol = math_clamp(s.target_radius or 0.1, 0.01, 0.2)
     local v_tol = math_clamp(h_tol * 0.5, 0.008, 0.1)
-    ENEMY_SMART_TARGETING_TEMPLATE.precision_target.within_distance_to_box_x = h_tol
-    ENEMY_SMART_TARGETING_TEMPLATE.precision_target.within_distance_to_box_y = v_tol
-    ENEMY_SMART_TARGETING_TEMPLATE.precision_target.smart_tagging = not s.target_normals
+    local smart_tagging = not s.target_normals
+    local enemy_template = ENEMY_SMART_TARGETING_TEMPLATE.precision_target
+    if enemy_template.within_distance_to_box_x ~= h_tol or enemy_template.within_distance_to_box_y ~= v_tol or enemy_template.smart_tagging ~= smart_tagging then
+        enemy_template.within_distance_to_box_x = h_tol
+        enemy_template.within_distance_to_box_y = v_tol
+        enemy_template.smart_tagging = smart_tagging
+    end
 
     local ray_origin, forward, right, up = player_smart_targeting_extension:_targeting_parameters()
     player_smart_targeting_extension._precision_target_aim_assist:update_precision_target(
@@ -736,12 +767,12 @@ local function hovered_priority_target()
     local is_alive = target_unit and (not HEALTH_ALIVE or HEALTH_ALIVE[target_unit] ~= false)
 
     if is_alive and breed then
-        local tags = breed.tags or {}
+        local tags = breed.tags
         if breed.is_boss then
             cached_priority_target = s.target_bosses
-        elseif tags.special then
+        elseif tags and tags.special then
             cached_priority_target = s.target_specials
-        elseif tags.elite then
+        elseif tags and tags.elite then
             cached_priority_target = s.target_elites
         else
             cached_priority_target = s.target_normals
@@ -752,8 +783,11 @@ local function hovered_priority_target()
         else
             local dh_tol = math_clamp(s.destructible_radius or 0.1, 0.01, 0.2)
             local dv_tol = math_clamp(dh_tol * 0.4, 0.006, 0.08)
-            OBJECT_SMART_TARGETING_TEMPLATE.precision_target.within_distance_to_box_x = dh_tol
-            OBJECT_SMART_TARGETING_TEMPLATE.precision_target.within_distance_to_box_y = dv_tol
+            local obj_template = OBJECT_SMART_TARGETING_TEMPLATE.precision_target
+            if obj_template.within_distance_to_box_x ~= dh_tol or obj_template.within_distance_to_box_y ~= dv_tol then
+                obj_template.within_distance_to_box_x = dh_tol
+                obj_template.within_distance_to_box_y = dv_tol
+            end
 
             player_smart_targeting_extension._precision_target_aim_assist:update_precision_target(
                 player_smart_targeting_extension._unit, OBJECT_SMART_TARGETING_TEMPLATE, ray_origin, forward, right, up,
@@ -768,8 +802,12 @@ local function hovered_priority_target()
             -- Improved destructible check: If still false, try a wider raycast for "cursed" destructibles
             if not cached_priority_target then
                 -- Briefly increase tolerance for a second check
-                OBJECT_SMART_TARGETING_TEMPLATE.precision_target.within_distance_to_box_x = dh_tol * 1.5
-                OBJECT_SMART_TARGETING_TEMPLATE.precision_target.within_distance_to_box_y = dv_tol * 1.5
+                local w_dh_tol = dh_tol * 1.5
+                local w_dv_tol = dv_tol * 1.5
+                if obj_template.within_distance_to_box_x ~= w_dh_tol or obj_template.within_distance_to_box_y ~= w_dv_tol then
+                    obj_template.within_distance_to_box_x = w_dh_tol
+                    obj_template.within_distance_to_box_y = w_dv_tol
+                end
                 player_smart_targeting_extension._precision_target_aim_assist:update_precision_target(
                     player_smart_targeting_extension._unit, OBJECT_SMART_TARGETING_TEMPLATE, ray_origin, forward, right,
                     up,
@@ -840,13 +878,21 @@ mod:hook_safe(CLASS.HudElementCrosshair, "update", function(self)
 
     -- Crosshair tinting based on hovered target
     local should_tint = should_allow_fire_now() and hovered_priority_target()
-    widget.content = widget.content or {}
-    local tint_cache = widget.content.holdfire_tint_cache or {}
-    widget.content.holdfire_tint_cache = tint_cache
+    local content = widget.content
+    if not content then
+        content = {}
+        widget.content = content
+    end
+    local tint_cache = content.holdfire_tint_cache
+    if not tint_cache then
+        tint_cache = {}
+        content.holdfire_tint_cache = tint_cache
+    end
 
-    for style_name, style_data in pairs(widget.style) do
+    local style = widget.style
+    for style_name, style_data in pairs(style) do
         local color = style_data.color
-        if color and not string_find(style_name, "^hit_") then
+        if color and string_sub(style_name, 1, 4) ~= "hit_" then
             if should_tint then
                 if not tint_cache[style_name] then
                     tint_cache[style_name] = { color[1], color[2], color[3], color[4] }
@@ -869,7 +915,8 @@ mod:hook(CLASS.ActionHandler, "start_action",
     function(func, self, id, action_objects, action_name, action_params, action_settings, used_input, ...)
         if id == "weapon_action" and self._unit == local_player_unit() then
             local is_blocked = false
-            for token, _ in pairs(BLOCKED_ACTION_TOKENS) do
+            for i = 1, #BLOCKED_ACTION_TOKENS do
+                local token = BLOCKED_ACTION_TOKENS[i]
                 if string_find(action_name, token, 1, true) then
                     is_blocked = true
                     break

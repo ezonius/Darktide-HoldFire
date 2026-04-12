@@ -54,9 +54,16 @@ return {
 				type = "group",
 				sub_widgets = {
 					{
+						setting_id = "load_current_weapon_settings",
+						type = "checkbox",
+						default_value = false,
+						tooltip = "load_current_weapon_settings_description",
+					},
+					{
 						setting_id = "ranged_weapon_selection",
 						type = "dropdown",
 						default_value = "global_ranged",
+						tooltip = "ranged_weapon_selection_tooltip",
 						options = {
 							{ text = "global_ranged", value = "global_ranged" },
 							{ text = "stubrevolver_p1_m1", value = "stubrevolver_p1_m1" },

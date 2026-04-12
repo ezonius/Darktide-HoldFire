@@ -37,7 +37,8 @@ local player_smart_targeting_extension = nil
 local player_weapon_extension = nil
 local cached_priority_target = false
 local cached_priority_target_frame = -1
-local cached_weapon_profile_name = nil
+local cached_weapon_profile_name = "global_ranged"
+local cached_weapon_display_name = "global_ranged"
 local setting_enabled = true
 local applying_weapon_profile = false
 local can_block_cached = false
@@ -98,11 +99,15 @@ local function ensure_weapon_profile(weapon_name)
     if profile then return profile end
 
     profile = {}
+    local global_profile = profiles["global_ranged"]
+
     for setting_id, default_value in pairs(PER_WEAPON_SETTING_DEFAULTS) do
-        profile[setting_id] = clone_setting_value(default_value)
+        local base_value = default_value
+        if weapon_name ~= "global_ranged" and global_profile and global_profile[setting_id] ~= nil then
+            base_value = global_profile[setting_id]
+        end
+        profile[setting_id] = clone_setting_value(base_value)
     end
-    profiles[weapon_name] = profile
-    save_weapon_profiles(profiles)
     return profile
 end
 
@@ -136,17 +141,28 @@ local function persist_current_weapon_profile(weapon_name)
 end
 
 
+local function reset_weapon_state()
+    can_block_cached = false
+    _last_weapon_template = nil
+    _last_ranged_weapon = nil
+    cached_priority_target_frame = -1
+    cached_weapon_profile_name = "global_ranged"
+    cached_weapon_display_name = "global_ranged"
+end
+
+
 local function apply_weapon_profile(weapon_name, display_name)
+    -- Update indicator dropdown
+    local selection_name = display_name or weapon_name
+    cached_weapon_display_name = selection_name
+    if selection_name ~= mod:get("ranged_weapon_selection") then
+        mod:set("ranged_weapon_selection", selection_name, false)
+    end
+
     local profile = ensure_weapon_profile(weapon_name)
     if not profile then return end
 
     applying_weapon_profile = true
-
-    -- Update indicator dropdown
-    local selection_name = display_name or weapon_name
-    if selection_name ~= mod:get("ranged_weapon_selection") then
-        mod:set("ranged_weapon_selection", selection_name, false)
-    end
 
     for setting_id, default_value in pairs(PER_WEAPON_SETTING_DEFAULTS) do
         local value = profile[setting_id]
@@ -164,9 +180,19 @@ local function setting_value(setting_id)
     -- Settings are now cached in the 'current_settings' table to avoid frequent mod:get calls.
 end
 
-local function current_weapon_settings_match_defaults()
-    for setting_id, default_value in pairs(PER_WEAPON_SETTING_DEFAULTS) do
-        if not setting_values_equal(mod:get(setting_id), default_value) then
+local function current_weapon_settings_match_template()
+    local profiles = weapon_profiles()
+    local template
+    if cached_weapon_profile_name == "global_ranged" then
+        template = PER_WEAPON_SETTING_DEFAULTS
+    else
+        template = profiles["global_ranged"] or PER_WEAPON_SETTING_DEFAULTS
+    end
+
+    for setting_id, _ in pairs(PER_WEAPON_SETTING_DEFAULTS) do
+        local current_value = current_settings[setting_id]
+        local template_value = template[setting_id]
+        if not setting_values_equal(current_value, template_value) then
             return false
         end
     end
@@ -229,6 +255,7 @@ PER_WEAPON_SETTING_DEFAULTS = {
 ALL_SETTING_DEFAULTS = {
     enable_mod = true,
     enable_skitarius_omnissiah_hook = true,
+    load_current_weapon_settings = false,
     ranged_weapon_selection = "global_ranged",
     toggle_mod_keybind = {},
     toggle_ads_filter_keybind = {},
@@ -383,11 +410,26 @@ local STABLE_ID_PATHS = {
 }
 
 local function detected_weapon_profile_name()
-    local ranged_weapon = current_ranged_slot_weapon()
-    local weapon_template = current_weapon_template()
-    local equipped_reference = current_equipped_ranged_reference()
+    local wielded_template = current_weapon_template()
+    local secondary_weapon = current_ranged_slot_weapon()
+    
+    local subject_weapon = nil
+    local subject_template = nil
+    local subject_reference = nil
+    
+    if wielded_template and WeaponTemplate_is_ranged(wielded_template) then
+        subject_template = wielded_template
+        if secondary_weapon and secondary_weapon.weapon_template == wielded_template then
+            subject_weapon = secondary_weapon
+            subject_reference = current_equipped_ranged_reference()
+        end
+    else
+        subject_weapon = secondary_weapon
+        subject_template = subject_weapon and subject_weapon.weapon_template or current_equipped_ranged_template()
+        subject_reference = current_equipped_ranged_reference()
+    end
 
-    if not ranged_weapon and not weapon_template and not equipped_reference then return nil, nil end
+    if not subject_weapon and not subject_template and not subject_reference then return nil, nil end
 
     table_clear(_profile_identifiers)
     table_clear(_profile_seen)
@@ -401,25 +443,35 @@ local function detected_weapon_profile_name()
         end
     end
 
-    for i = 1, #STABLE_ID_PATHS do
-        add_id(nested_identifier_value(ranged_weapon, STABLE_ID_PATHS[i]))
+    if subject_weapon then
+        for i = 1, #STABLE_ID_PATHS do
+            add_id(nested_identifier_value(subject_weapon, STABLE_ID_PATHS[i]))
+        end
     end
-    add_id(equipped_reference)
-    add_id(weapon_template and weapon_template.name)
-    add_id(ranged_weapon and ranged_weapon.name)
+    
+    add_id(subject_reference)
+    add_id(subject_template and subject_template.name)
+    
+    if subject_weapon and subject_weapon.name then
+        add_id(subject_weapon.name)
+    end
 
-    -- Improved per-weapon saves: Use the base template name as a fallback for stability
-    if count == 0 and weapon_template then
-        add_id(weapon_template.base_template_name)
+    if count == 0 and subject_template then
+        add_id(subject_template.base_template_name)
     end
 
     local full_id = count > 0 and table.concat(_profile_identifiers, "|", 1, count) or nil
-    local display_name = (weapon_template and (weapon_template.name or weapon_template.base_template_name)) or (ranged_weapon and ranged_weapon.name) or equipped_reference
+    local display_name = (subject_template and (subject_template.name or subject_template.base_template_name)) or (subject_weapon and subject_weapon.name) or subject_reference
 
     return full_id, display_name
 end
 
 local function current_weapon_profile_name()
+    local player_unit = local_player_unit()
+    if not player_unit then
+        return "global_ranged", "global_ranged"
+    end
+
     local detected, detected_display = detected_weapon_profile_name()
     local selected = mod:get("ranged_weapon_selection")
 
@@ -428,31 +480,41 @@ local function current_weapon_profile_name()
         if detected then return detected, detected_display end
     end
 
-    -- If no weapon detected (melee/hub), use dropdown
-    if not detected then
-        return (selected and selected ~= "global_ranged") and selected or "global_ranged", selected
-    end
+    -- In settings menu: prioritize detected weapon if available to ensure it's on the equipped weapon
+    if detected then return detected, detected_display end
 
-    -- In menu: prefer detected weapon if dropdown is set to "Auto" or if it matches what we have equipped
-    if selected == "global_ranged" or string.find(detected, selected, 1, true) then
-        return detected, detected_display
-    end
-
-    -- Explicit override in dropdown
-    return selected, selected
+    -- Fallback when no weapon detected (shouldn't happen in world, but just in case)
+    return (selected and selected ~= "") and selected or "global_ranged", selected
 end
 
 
 
 local function toggle_target_setting(setting_id, enabled_label)
-    local new_value = not mod:get(setting_id)
-    local weapon_name = current_weapon_profile_name()
-    mod:set(setting_id, new_value)
-    if weapon_name then
-        persist_weapon_profile_setting(weapon_name, setting_id, new_value)
+    local detected_name, detected_display = detected_weapon_profile_name()
+    local weapon_name = detected_name or "global_ranged"
+    local weapon_display = detected_display or "Global"
+
+    local new_value
+    if weapon_name == "global_ranged" then
+        new_value = not current_settings[setting_id]
+    else
+        local profiles = weapon_profiles()
+        local profile = ensure_weapon_profile(weapon_name)
+        new_value = not profile[setting_id]
+        profile[setting_id] = new_value
+        profiles[weapon_name] = profile
+        save_weapon_profiles(profiles)
     end
+
+    if weapon_name == cached_weapon_profile_name then
+        applying_weapon_profile = true
+        mod:set(setting_id, new_value)
+        current_settings[setting_id] = new_value
+        applying_weapon_profile = false
+    end
+
     cached_priority_target_frame = -1
-    mod:echo("%s %s", enabled_label, new_value and "enabled" or "disabled")
+    mod:echo("%s (%s) %s", enabled_label, weapon_display, new_value and "enabled" or "disabled")
 end
 
 local function current_ads_input(input_service)
@@ -583,9 +645,11 @@ mod.toggle_target_destructibles = function()
 end
 
 mod.toggle_ads_filter_enabled = function()
-    local weapon_name = current_weapon_profile_name()
-    if not weapon_name or weapon_name == "" then return end
+    local detected_name, detected_display = detected_weapon_profile_name()
+    local weapon_name = detected_name or "global_ranged"
+    local weapon_display = detected_display or "Global"
 
+    local profiles = weapon_profiles()
     local profile = ensure_weapon_profile(weapon_name)
     local current_filter = profile.ads_filter
 
@@ -598,15 +662,17 @@ mod.toggle_ads_filter_enabled = function()
         profile.ads_filter_last_on_value = nil
     end
 
-    save_weapon_profiles(weapon_profiles())
+    profiles[weapon_name] = profile
+    save_weapon_profiles(profiles)
 
     local filter_text = mod:localize(profile.ads_filter)
-    mod:notify(string.format("HoldFire ADS Filter: %s", filter_text))
+    mod:notify(string.format("HoldFire ADS Filter (%s): %s", weapon_display, filter_text))
 
     -- Force refresh of current settings if this is the active weapon
     if weapon_name == cached_weapon_profile_name then
         applying_weapon_profile = true
         mod:set("ads_filter", profile.ads_filter)
+        current_settings.ads_filter = profile.ads_filter
         applying_weapon_profile = false
     end
 end
@@ -894,7 +960,7 @@ mod:hook_safe(CLASS.PlayerUnitSmartTargetingExtension, "delete", function(self)
     if self == player_smart_targeting_extension then
         persist_current_weapon_profile()
         player_smart_targeting_extension = nil
-        cached_priority_target_frame = -1
+        reset_weapon_state()
     end
 end)
 
@@ -978,23 +1044,42 @@ mod:hook("SkitariusOmnissiah", "omnissiah", function(func, self, queried_input, 
 end)
 
 
+mod.on_game_state_changed = function(status, state_name)
+    if status == "enter" then
+        mod:debug("Enter " .. state_name)
+        if state_name == "StateMainMenu" then
+            reset_weapon_state()
+            apply_weapon_profile("global_ranged")
+        elseif state_name == "GameplayStateRun" then
+            local detected, display_name = detected_weapon_profile_name()
+            if detected then
+                mod:debug("Found " .. display_name)
+                cached_weapon_profile_name = detected
+                apply_weapon_profile(detected, display_name)
+            else
+                mod:debug("No weapons found!!")
+            end
+        end
+    end
+end
+
+
 mod.on_enabled = function()
     -- This function was added to ensure mod state is properly refreshed when enabled.
     refresh_enabled_setting()
-    cached_priority_target_frame = -1
+    reset_weapon_state()
 end
 
 mod.on_disabled = function()
     persist_current_weapon_profile()
     player_weapon_extension = nil
     refresh_enabled_setting()
-    cached_priority_target_frame = -1
-    cached_weapon_profile_name = nil
+    reset_weapon_state()
 end
 
 mod.reset_to_defaults = function()
     applying_weapon_profile = true
-    cached_weapon_profile_name = nil
+    reset_weapon_state()
     save_weapon_profiles({})
 
     for id, val in pairs(ALL_SETTING_DEFAULTS) do
@@ -1003,20 +1088,17 @@ mod.reset_to_defaults = function()
     end
 
     applying_weapon_profile = false
-    save_weapon_profiles({})
 
     update_weapon_cache()
 
     player_weapon_extension = nil
     refresh_enabled_setting()
-    cached_priority_target_frame = -1
-    is_aiming = false
-    cached_weapon_profile_name = nil
+    reset_weapon_state()
 end
 
 mod.reset_saved_weapon_profiles = function()
     applying_weapon_profile = true
-    cached_weapon_profile_name = nil
+    reset_weapon_state()
     save_weapon_profiles({})
     mod:set("ranged_weapon_selection", "global_ranged", false)
     for setting_id, default_value in pairs(PER_WEAPON_SETTING_DEFAULTS) do
@@ -1036,11 +1118,25 @@ mod.on_setting_changed = function(setting_id)
         refresh_enabled_setting()
     elseif setting_id == "enable_skitarius_omnissiah_hook" then
         current_settings.enable_skitarius_omnissiah_hook = mod:get(setting_id)
+    elseif setting_id == "load_current_weapon_settings" then
+        if mod:get("load_current_weapon_settings") then
+            local detected, display_name = detected_weapon_profile_name()
+            if detected then
+                cached_weapon_profile_name = detected
+                apply_weapon_profile(detected, display_name)
+            end
+            mod:set("load_current_weapon_settings", false, false)
+        end
     elseif setting_id == "ranged_weapon_selection" then
-        local weapon_name, display_name = current_weapon_profile_name()
-        if weapon_name then
-            cached_weapon_profile_name = weapon_name
-            apply_weapon_profile(weapon_name, display_name)
+        if not applying_weapon_profile then
+            -- Revert manual changes to this dropdown
+            mod:set("ranged_weapon_selection", cached_weapon_display_name, false)
+            return
+        end
+        local selection = mod:get("ranged_weapon_selection")
+        if selection then
+            cached_weapon_display_name = selection
+            apply_weapon_profile(selection)
         end
     elseif setting_id == "purge_weapon_profiles" and mod:get("purge_weapon_profiles") then
         mod.reset_saved_weapon_profiles()
@@ -1048,9 +1144,10 @@ mod.on_setting_changed = function(setting_id)
     elseif PER_WEAPON_SETTING_DEFAULTS[setting_id] ~= nil then
         local value = mod:get(setting_id)
         current_settings[setting_id] = value
+
         persist_weapon_profile_setting(cached_weapon_profile_name, setting_id, value)
 
-        if current_weapon_settings_match_defaults() then
+        if current_weapon_settings_match_template() then
             remove_weapon_profile(cached_weapon_profile_name)
         end
     end
@@ -1063,10 +1160,11 @@ local saved_version = mod:get("weapon_profile_key_schema_version")
 if saved_version ~= PROFILE_KEY_SCHEMA_VERSION then
     save_weapon_profiles({})
     mod:set("weapon_profile_key_schema_version", PROFILE_KEY_SCHEMA_VERSION, true)
-    cached_weapon_profile_name = nil
+    reset_weapon_state()
 end
 
 refresh_enabled_setting()
+apply_weapon_profile("global_ranged")
 current_settings.enable_skitarius_omnissiah_hook = mod:get("enable_skitarius_omnissiah_hook")
 if current_settings.enable_skitarius_omnissiah_hook == nil then
     current_settings.enable_skitarius_omnissiah_hook = ALL_SETTING_DEFAULTS.enable_skitarius_omnissiah_hook

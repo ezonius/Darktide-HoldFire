@@ -20,10 +20,13 @@ local localizations = {
 		en = "These settings are saved per weapon, so each ranged weapon can keep its own allowed target and fire-blocking rules.",
 	},
 	ranged_weapon_selection = {
-		en = "Weapon Selection",
+		en = "Detected Weapon",
+	},
+	ranged_weapon_selection_tooltip = {
+		en = "Settings shown below are currently being applied to this detected weapon. This dropdown serves as a read-only indicator.",
 	},
 	global_ranged = {
-		en = "CURRENTLY EQUIPPED",
+		en = "GLOBAL DEFAULT SETTINGS",
 	},
 	ads_filter = {
 		en = "ADS / Hipfire Filter",
@@ -115,6 +118,12 @@ local localizations = {
 	target_destructibles_description = {
 		en = "Allow firing at Heretic Idols and active hazard props such as barrels, gas tanks, or hanging explosives. Pickups and Medicae stations are excluded.",
 	},
+	load_current_weapon_settings = {
+		en = "Load Current Weapon Settings",
+	},
+	load_current_weapon_settings_description = {
+		en = "Loads settings for currently equipped ranged weapon. Set to off once loaded.",
+	},
 }
 
 local family_prefix = "loc_weapon_family_"
@@ -130,7 +139,7 @@ for weapon, _ in pairs(WeaponTemplates) do
 	end
 	local localized_mark = Localize(mark_prefix .. weapon)
 
-	local localized = localized_family and localized_pattern and localized_mark and string.format("%s %s %s", localized_pattern, localized_mark, localized_family)
+	local localized = localized_family and localized_pattern and localized_mark and string.format("%s %s [%s]", localized_family, localized_mark, localized_pattern)
 	if localized and not string.find(localized, "unlocalized") then
 		localizations[weapon] = {
 			en = localized

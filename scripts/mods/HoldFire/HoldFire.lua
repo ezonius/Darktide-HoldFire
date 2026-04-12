@@ -1,4 +1,4 @@
--- Author: ImperialSkoom
+-- Author: ImperialSkoom, ezonius
 
 local mod = get_mod("HoldFire")
 
@@ -89,7 +89,7 @@ local function get_dynamic_weapon_ids()
 end
 
 local function save_dynamic_weapon_ids(ids)
-    mod:set("dynamic_weapon_ids", ids, true)
+    mod:set(true, ids, "dynamic_weapon_ids")
 end
 
 local function register_dynamic_weapon_id(id)
@@ -161,7 +161,6 @@ local function persist_current_weapon_profile(weapon_name)
     end
 end
 
-
 local function reset_weapon_state()
     can_block_cached = false
     _last_weapon_template = nil
@@ -171,9 +170,7 @@ local function reset_weapon_state()
     cached_weapon_display_name = "global_ranged"
 end
 
-
-local function apply_weapon_profile(weapon_name, display_name)
-    -- Update indicator dropdown
+local function apply_weapon_profile(weapon_name, display_name) -- Update indicator dropdown
     local selection_name = display_name or weapon_name
     cached_weapon_display_name = selection_name
     if selection_name ~= mod:get("ranged_weapon_selection") then
@@ -195,12 +192,6 @@ local function apply_weapon_profile(weapon_name, display_name)
     applying_weapon_profile = false
 end
 
-
-local function setting_value(setting_id)
-    -- This function was removed for performance reasons.
-    -- Settings are now cached in the 'current_settings' table to avoid frequent mod:get calls.
-end
-
 local function current_weapon_settings_match_template()
     local profiles = weapon_profiles()
     local template
@@ -218,16 +209,6 @@ local function current_weapon_settings_match_template()
         end
     end
     return true
-end
-
-local function clear_all_weapon_profiles()
-    -- This function was removed for performance reasons.
-    -- Logic is now inlined where needed as save_weapon_profiles({}).
-end
-
-local function ensure_profile_key_schema()
-    -- This function was removed for performance reasons.
-    -- The schema check logic was moved to the end of the file to run once during initialization.
 end
 
 local ENEMY_SMART_TARGETING_TEMPLATE = {
@@ -307,17 +288,10 @@ for k, v in pairs(ALL_SETTING_DEFAULTS) do
     current_settings[k] = v
 end
 
-
-
 local function refresh_enabled_setting()
     local stored_value = mod:get("enable_mod")
     setting_enabled = stored_value == nil and true or stored_value
     return setting_enabled
-end
-
-local function reset_cached_targeting()
-    -- This function was removed for performance reasons.
-    -- Targeting cache is now reset by setting cached_priority_target_frame to -1.
 end
 
 local function ui_using_input()
@@ -372,11 +346,6 @@ local function current_weapon_template()
     return nil
 end
 
-local function current_weapon_name()
-    -- This function was removed for performance reasons.
-    -- Logic is now inlined or simplified within current_weapon_profile_name.
-end
-
 local function current_ranged_slot_weapon()
     return player_weapon_extension and player_weapon_extension._weapons and
         player_weapon_extension._weapons.slot_secondary
@@ -398,20 +367,11 @@ end
 
 local function current_equipped_ranged_template()
     local player_unit = local_player_unit()
-    local weapon_extension = player_weapon_extension or (player_unit and ScriptUnit_has_extension(player_unit, "weapon_system"))
+    local weapon_extension = player_weapon_extension or
+        (player_unit and ScriptUnit_has_extension(player_unit, "weapon_system"))
     local weapons = weapon_extension and weapon_extension._weapons
     local ranged_weapon = weapons and weapons.slot_secondary
     return ranged_weapon and ranged_weapon.weapon_template
-end
-
-local function current_equipped_ranged_name()
-    -- This function was removed for performance reasons.
-    -- Logic is now simplified within current_weapon_profile_name.
-end
-
-local function append_unique_identifier(identifiers, seen, value)
-    -- This function was removed for performance reasons.
-    -- Unique identifier building is now inlined into current_weapon_profile_name.
 end
 
 local function nested_identifier_value(root, path)
@@ -433,11 +393,11 @@ local STABLE_ID_PATHS = {
 local function detected_weapon_profile_name()
     local wielded_template = current_weapon_template()
     local secondary_weapon = current_ranged_slot_weapon()
-    
+
     local subject_weapon = nil
     local subject_template = nil
     local subject_reference = nil
-    
+
     if wielded_template and WeaponTemplate_is_ranged(wielded_template) then
         subject_template = wielded_template
         if secondary_weapon and secondary_weapon.weapon_template == wielded_template then
@@ -469,10 +429,10 @@ local function detected_weapon_profile_name()
             add_id(nested_identifier_value(subject_weapon, STABLE_ID_PATHS[i]))
         end
     end
-    
+
     add_id(subject_reference)
     add_id(subject_template and subject_template.name)
-    
+
     if subject_weapon and subject_weapon.name then
         add_id(subject_weapon.name)
     end
@@ -482,7 +442,8 @@ local function detected_weapon_profile_name()
     end
 
     local full_id = count > 0 and table.concat(_profile_identifiers, "|", 1, count) or nil
-    local display_name = (subject_template and (subject_template.name or subject_template.base_template_name)) or (subject_weapon and subject_weapon.name) or subject_reference
+    local display_name = (subject_template and (subject_template.name or subject_template.base_template_name)) or
+        (subject_weapon and subject_weapon.name) or subject_reference
 
     if display_name then
         register_dynamic_weapon_id(display_name)
@@ -512,8 +473,6 @@ local function current_weapon_profile_name()
     return (selected and selected ~= "") and selected or "global_ranged", selected
 end
 
-
-
 local function toggle_target_setting(setting_id, enabled_label)
     local detected_name, detected_display = detected_weapon_profile_name()
     local weapon_name = detected_name or "global_ranged"
@@ -542,57 +501,12 @@ local function toggle_target_setting(setting_id, enabled_label)
     mod:echo("%s (%s) %s", enabled_label, weapon_display, new_value and "enabled" or "disabled")
 end
 
-local function current_ads_input(input_service)
-    -- This function was removed for performance reasons.
-    -- Logic is now inlined where needed.
-end
-
-local function current_live_ads_input()
-    -- This function was removed for performance reasons.
-    -- Logic is now inlined where needed.
-end
-
-local function current_skitarius_ads_input(omnissiah)
-    -- This function was removed for performance reasons.
-    -- Logic is now inlined where needed.
-end
-
-local function current_ads_filter()
-    -- This function was removed for performance reasons.
-    -- Filter value is now accessed via current_settings.ads_filter.
-end
-
-local function normalize_ads_state(is_adsing)
-    -- This function was removed for performance reasons.
-    -- State normalization is now inlined.
-end
-
 local function ads_filter_allows(is_adsing)
     local filter = current_settings.ads_filter
     if filter == "disabled" then return false end
     if filter == "ads_only" then return is_adsing end
     if filter == "hip_only" then return not is_adsing end
     return true
-end
-
-local function current_enemy_lock_tolerance()
-    -- This function was removed for performance reasons.
-    -- Tolerance calculation is now inlined into hovered_priority_target.
-end
-
-local function current_destructible_lock_tolerance()
-    -- This function was removed for performance reasons.
-    -- Tolerance calculation is now inlined into hovered_priority_target.
-end
-
-local function is_crosshair_hit_indicator_style(style_name)
-    -- This function was removed for performance reasons.
-    -- Style checks are now inlined into the crosshair update hook.
-end
-
-local function clone_color(color)
-    -- This function was removed for performance reasons.
-    -- Color cloning is now performed in-place where needed.
 end
 
 local _last_weapon_template = nil
@@ -637,16 +551,6 @@ local function update_weapon_cache()
         cached_weapon_profile_name = profile_name
         apply_weapon_profile(profile_name, display_name)
     end
-end
-
-local function can_block_current_weapon()
-    -- This function was removed for performance reasons.
-    -- Blocking state is now managed by update_weapon_cache and the can_block_cached flag.
-end
-
-local function refresh_weapon_logic()
-    -- This function was removed for performance reasons.
-    -- Logic is now handled by update_weapon_cache.
 end
 
 mod.toggle_target_elites = function()
@@ -709,59 +613,9 @@ function mod.toggle_mod_enabled()
     mod:notify(string.format("HoldFire: %s", setting_enabled and "Enabled" or "Disabled"))
 end
 
-local function is_blocked_shot_action(action_name)
-    -- This function was removed for performance reasons.
-    -- Action check logic is now inlined into the start_action hook.
-end
-
-local function is_ads_shot_action(action_name)
-    -- This function was removed for performance reasons.
-    -- ADS action check logic is now inlined into the start_action hook.
-end
-
 local function get_target_breed_data(target_unit)
     local unit_data_extension = target_unit and ScriptUnit_has_extension(target_unit, "unit_data_system")
     return unit_data_extension and unit_data_extension:breed()
-end
-
-local function is_target_alive(target_unit)
-    -- This function was removed for performance reasons.
-    -- Aliveness checks are now inlined into targeting logic.
-end
-
-local function is_pickup_unit(target_unit)
-    -- This function was removed for performance reasons.
-    -- Pickup checks are now inlined into is_destructible_target.
-end
-
-local function is_health_station_unit(target_unit)
-    -- This function was removed for performance reasons.
-    -- Health station checks are now inlined into is_destructible_target.
-end
-
-local function unit_data_value(target_unit, key)
-    -- This function was removed for performance reasons.
-    -- Unit data access is now inlined.
-end
-
-local function update_precision_target(template)
-    -- This function was removed for performance reasons.
-    -- Precision targeting updates are now inlined into hovered_priority_target.
-end
-
-local function is_intact_destructible(target_unit, destructible_extension)
-    -- This function was removed for performance reasons.
-    -- Destructible state checks are now inlined into is_destructible_target.
-end
-
-local function is_heretic_idol_target(target_unit)
-    -- This function was removed for performance reasons.
-    -- Idol targeting logic is now inlined into is_destructible_target.
-end
-
-local function is_targetable_hazard_prop(target_unit)
-    -- This function was removed for performance reasons.
-    -- Hazard prop checks are now inlined into is_destructible_target.
 end
 
 local function is_destructible_target(target_unit)
@@ -791,10 +645,6 @@ local function is_destructible_target(target_unit)
     return false
 end
 
-local function nearby_destructible_target(hit_position, ignored_unit)
-    -- This function was removed for performance reasons.
-    -- Nearby destructible search is now inlined into resolve_destructible_target.
-end
 
 local function resolve_destructible_target(target_unit, target_position)
     if is_destructible_target(target_unit) then return target_unit end
@@ -847,11 +697,6 @@ local function raycasted_destructible_target()
         end
     end
     return false
-end
-
-local function is_eligible_target(target_unit, breed_data)
-    -- This function was removed for performance reasons.
-    -- Eligibility checks are now inlined into hovered_priority_target.
 end
 
 local function hovered_priority_target()
@@ -942,28 +787,11 @@ local function hovered_priority_target()
     return cached_priority_target
 end
 
-local function update_holdfire_state()
-    -- This function was removed for performance reasons.
-    -- Direct calls to hovered_priority_target are now used.
-end
-
-
 local function should_allow_fire_now()
     if not setting_enabled or not mod:is_enabled() then return true end
     if ui_using_input() then return true end
     if not can_block_cached or not ads_filter_allows(current_ads_input_state()) then return true end
     return hovered_priority_target()
-end
-
-
-local function should_tint_crosshair()
-    -- This function was removed for performance reasons.
-    -- Tinting logic is now inlined into the crosshair update hook.
-end
-
-local function apply_crosshair_tint(widget, tint_color)
-    -- This function was removed for performance reasons.
-    -- Crosshair tinting is now handled directly in the crosshair update hook.
 end
 
 local function input_hook(func, self, action_name)
@@ -1003,10 +831,6 @@ mod:hook_safe(CLASS.PlayerUnitWeaponExtension, "fixed_update", function(self, un
         update_weapon_cache()
     end
 end)
-
---mod:hook_safe(CLASS.PlayerUnitSmartTargetingExtension, "fixed_update", function(self)
--- This hook's logic is now handled by other update hooks and inlined targeting.
---end)
 
 mod:hook_safe(CLASS.HudElementCrosshair, "update", function(self)
     if not setting_enabled or not mod:is_enabled() then return end
@@ -1058,7 +882,6 @@ mod:hook(CLASS.ActionHandler, "start_action",
         return func(self, id, action_objects, action_name, action_params, action_settings, used_input, ...)
     end)
 
-
 mod:hook("SkitariusOmnissiah", "omnissiah", function(func, self, queried_input, user_value)
     local outcome = func(self, queried_input, user_value)
 
@@ -1067,7 +890,6 @@ mod:hook("SkitariusOmnissiah", "omnissiah", function(func, self, queried_input, 
     end
     return outcome
 end)
-
 
 mod.on_game_state_changed = function(status, state_name)
     if status == "enter" then
@@ -1087,7 +909,6 @@ mod.on_game_state_changed = function(status, state_name)
         end
     end
 end
-
 
 mod.on_enabled = function()
     -- This function was added to ensure mod state is properly refreshed when enabled.
@@ -1136,8 +957,7 @@ mod.reset_saved_weapon_profiles = function()
     mod:notify("HoldFire: Cleared saved weapon profiles")
 end
 
-mod.on_setting_changed = function(setting_id)
-    if applying_weapon_profile then return end
+mod.on_setting_changed = function(setting_id) if applying_weapon_profile then return end
 
     if setting_id == "enable_mod" then
         refresh_enabled_setting()
@@ -1178,7 +998,6 @@ mod.on_setting_changed = function(setting_id)
     end
     cached_priority_target_frame = -1
 end
-
 
 -- Initialize
 local saved_version = mod:get("weapon_profile_key_schema_version")

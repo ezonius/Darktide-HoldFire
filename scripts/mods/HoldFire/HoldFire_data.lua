@@ -64,62 +64,97 @@ return {
 						type = "dropdown",
 						default_value = "global_ranged",
 						tooltip = "ranged_weapon_selection_tooltip",
-						options = {
-							{ text = "global_ranged", value = "global_ranged" },
-							{ text = "stubrevolver_p1_m1", value = "stubrevolver_p1_m1" },
-							{ text = "stubrevolver_p1_m2", value = "stubrevolver_p1_m2" },
-							{ text = "shotgun_p1_m1", value = "shotgun_p1_m1" },
-							{ text = "shotgun_p1_m2", value = "shotgun_p1_m2" },
-							{ text = "shotgun_p1_m3", value = "shotgun_p1_m3" },
-							{ text = "shotgun_p2_m1", value = "shotgun_p2_m1" },
-							{ text = "shotgun_p4_m1", value = "shotgun_p4_m1" },
-							{ text = "shotgun_p4_m2", value = "shotgun_p4_m2" },
-							{ text = "shotpistol_shield_p1_m1", value = "shotpistol_shield_p1_m1" },
-							{ text = "plasmagun_p1_m1", value = "plasmagun_p1_m1" },
-							{ text = "ogryn_thumper_p1_m1", value = "ogryn_thumper_p1_m1" },
-							{ text = "ogryn_thumper_p1_m2", value = "ogryn_thumper_p1_m2" },
-							{ text = "ogryn_rippergun_p1_m1", value = "ogryn_rippergun_p1_m1" },
-							{ text = "ogryn_rippergun_p1_m2", value = "ogryn_rippergun_p1_m2" },
-							{ text = "ogryn_rippergun_p1_m3", value = "ogryn_rippergun_p1_m3" },
-							{ text = "ogryn_heavystubber_p1_m1", value = "ogryn_heavystubber_p1_m1" },
-							{ text = "ogryn_heavystubber_p1_m2", value = "ogryn_heavystubber_p1_m2" },
-							{ text = "ogryn_heavystubber_p1_m3", value = "ogryn_heavystubber_p1_m3" },
-							{ text = "ogryn_heavystubber_p2_m1", value = "ogryn_heavystubber_p2_m1" },
-							{ text = "ogryn_heavystubber_p2_m2", value = "ogryn_heavystubber_p2_m2" },
-							{ text = "ogryn_heavystubber_p2_m3", value = "ogryn_heavystubber_p2_m3" },
-							{ text = "ogryn_gauntlet_p1_m1", value = "ogryn_gauntlet_p1_m1" },
-							{ text = "laspistol_p1_m1", value = "laspistol_p1_m1" },
-							{ text = "laspistol_p1_m3", value = "laspistol_p1_m3" },
-							{ text = "lasgun_p1_m1", value = "lasgun_p1_m1" },
-							{ text = "lasgun_p1_m2", value = "lasgun_p1_m2" },
-							{ text = "lasgun_p1_m3", value = "lasgun_p1_m3" },
-							{ text = "lasgun_p2_m1", value = "lasgun_p2_m1" },
-							{ text = "lasgun_p2_m2", value = "lasgun_p2_m2" },
-							{ text = "lasgun_p2_m3", value = "lasgun_p2_m3" },
-							{ text = "lasgun_p3_m1", value = "lasgun_p3_m1" },
-							{ text = "lasgun_p3_m2", value = "lasgun_p3_m2" },
-							{ text = "lasgun_p3_m3", value = "lasgun_p3_m3" },
-							{ text = "forcestaff_p1_m1", value = "forcestaff_p1_m1" },
-							{ text = "forcestaff_p2_m1", value = "forcestaff_p2_m1" },
-							{ text = "forcestaff_p3_m1", value = "forcestaff_p3_m1" },
-							{ text = "forcestaff_p4_m1", value = "forcestaff_p4_m1" },
-							{ text = "flamer_p1_m1", value = "flamer_p1_m1" },
-							{ text = "bolter_p1_m1", value = "bolter_p1_m1" },
-							{ text = "boltpistol_p1_m1", value = "boltpistol_p1_m1" },
-							{ text = "boltpistol_p1_m2", value = "boltpistol_p1_m2" },
-							{ text = "autopistol_p1_m1", value = "autopistol_p1_m1" },
-							{ text = "autogun_p1_m1", value = "autogun_p1_m1" },
-							{ text = "autogun_p1_m2", value = "autogun_p1_m2" },
-							{ text = "autogun_p1_m3", value = "autogun_p1_m3" },
-							{ text = "autogun_p2_m1", value = "autogun_p2_m1" },
-							{ text = "autogun_p2_m2", value = "autogun_p2_m2" },
-							{ text = "autogun_p2_m3", value = "autogun_p2_m3" },
-							{ text = "autogun_p3_m1", value = "autogun_p3_m1" },
-							{ text = "autogun_p3_m2", value = "autogun_p3_m2" },
-							{ text = "autogun_p3_m3", value = "autogun_p3_m3" },
-							{ text = "psyker_throwing_knives", value = "psyker_throwing_knives" },
-							{ text = "psyker_chain_lightning", value = "psyker_chain_lightning" },
-						},
+						options = (function()
+							local options = {
+								{ text = "global_ranged", value = "global_ranged" },
+								{ text = "stubrevolver_p1_m1", value = "stubrevolver_p1_m1" },
+								{ text = "stubrevolver_p1_m2", value = "stubrevolver_p1_m2" },
+								{ text = "shotgun_p1_m1", value = "shotgun_p1_m1" },
+								{ text = "shotgun_p1_m2", value = "shotgun_p1_m2" },
+								{ text = "shotgun_p1_m3", value = "shotgun_p1_m3" },
+								{ text = "shotgun_p2_m1", value = "shotgun_p2_m1" },
+								{ text = "shotgun_p4_m1", value = "shotgun_p4_m1" },
+								{ text = "shotgun_p4_m2", value = "shotgun_p4_m2" },
+								{ text = "shotpistol_shield_p1_m1", value = "shotpistol_shield_p1_m1" },
+								{ text = "plasmagun_p1_m1", value = "plasmagun_p1_m1" },
+								{ text = "ogryn_thumper_p1_m1", value = "ogryn_thumper_p1_m1" },
+								{ text = "ogryn_thumper_p1_m2", value = "ogryn_thumper_p1_m2" },
+								{ text = "ogryn_rippergun_p1_m1", value = "ogryn_rippergun_p1_m1" },
+								{ text = "ogryn_rippergun_p1_m2", value = "ogryn_rippergun_p1_m2" },
+								{ text = "ogryn_rippergun_p1_m3", value = "ogryn_rippergun_p1_m3" },
+								{ text = "ogryn_heavystubber_p1_m1", value = "ogryn_heavystubber_p1_m1" },
+								{ text = "ogryn_heavystubber_p1_m2", value = "ogryn_heavystubber_p1_m2" },
+								{ text = "ogryn_heavystubber_p1_m3", value = "ogryn_heavystubber_p1_m3" },
+								{ text = "ogryn_heavystubber_p2_m1", value = "ogryn_heavystubber_p2_m1" },
+								{ text = "ogryn_heavystubber_p2_m2", value = "ogryn_heavystubber_p2_m2" },
+								{ text = "ogryn_heavystubber_p2_m3", value = "ogryn_heavystubber_p2_m3" },
+								{ text = "ogryn_gauntlet_p1_m1", value = "ogryn_gauntlet_p1_m1" },
+								{ text = "laspistol_p1_m1", value = "laspistol_p1_m1" },
+								{ text = "laspistol_p1_m3", value = "laspistol_p1_m3" },
+								{ text = "lasgun_p1_m1", value = "lasgun_p1_m1" },
+								{ text = "lasgun_p1_m2", value = "lasgun_p1_m2" },
+								{ text = "lasgun_p1_m3", value = "lasgun_p1_m3" },
+								{ text = "lasgun_p2_m1", value = "lasgun_p2_m1" },
+								{ text = "lasgun_p2_m2", value = "lasgun_p2_m2" },
+								{ text = "lasgun_p2_m3", value = "lasgun_p2_m3" },
+								{ text = "lasgun_p3_m1", value = "lasgun_p3_m1" },
+								{ text = "lasgun_p3_m2", value = "lasgun_p3_m2" },
+								{ text = "lasgun_p3_m3", value = "lasgun_p3_m3" },
+								{ text = "forcestaff_p1_m1", value = "forcestaff_p1_m1" },
+								{ text = "forcestaff_p2_m1", value = "forcestaff_p2_m1" },
+								{ text = "forcestaff_p3_m1", value = "forcestaff_p3_m1" },
+								{ text = "forcestaff_p4_m1", value = "forcestaff_p4_m1" },
+								{ text = "flamer_p1_m1", value = "flamer_p1_m1" },
+								{ text = "bolter_p1_m1", value = "bolter_p1_m1" },
+								{ text = "boltpistol_p1_m1", value = "boltpistol_p1_m1" },
+								{ text = "boltpistol_p1_m2", value = "boltpistol_p1_m2" },
+								{ text = "autopistol_p1_m1", value = "autopistol_p1_m1" },
+								{ text = "autogun_p1_m1", value = "autogun_p1_m1" },
+								{ text = "autogun_p1_m2", value = "autogun_p1_m2" },
+								{ text = "autogun_p1_m3", value = "autogun_p1_m3" },
+								{ text = "autogun_p2_m1", value = "autogun_p2_m1" },
+								{ text = "autogun_p2_m2", value = "autogun_p2_m2" },
+								{ text = "autogun_p2_m3", value = "autogun_p2_m3" },
+								{ text = "autogun_p3_m1", value = "autogun_p3_m1" },
+								{ text = "autogun_p3_m2", value = "autogun_p3_m2" },
+								{ text = "autogun_p3_m3", value = "autogun_p3_m3" },
+								{ text = "psyker_throwing_knives", value = "psyker_throwing_knives" },
+								{ text = "psyker_chain_lightning", value = "psyker_chain_lightning" },
+							}
+
+							local existing_ids = {}
+							for _, option in ipairs(options) do
+								existing_ids[option.value] = true
+							end
+
+							local dynamic_ids = mod:get("dynamic_weapon_ids")
+							local needs_save = false
+							local new_dynamic_ids = {}
+
+							if type(dynamic_ids) == "table" then
+								for _, id in ipairs(dynamic_ids) do
+									if not existing_ids[id] then
+										table.insert(options, { text = id, value = id })
+										table.insert(new_dynamic_ids, id)
+										existing_ids[id] = true
+									else
+										needs_save = true
+									end
+								end
+							end
+
+							if needs_save then
+								mod:set("dynamic_weapon_ids", new_dynamic_ids, true)
+							end
+
+							table.sort(options, function(a, b)
+								if a.value == "global_ranged" then return true end
+								if b.value == "global_ranged" then return false end
+								return tostring(a.text) < tostring(b.text)
+							end)
+
+							return options
+						end)(),
 					},
 					{
 						setting_id = "ads_filter",

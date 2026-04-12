@@ -83,6 +83,27 @@ local function save_weapon_profiles(profiles)
     mod:set("weapon_profiles", profiles, true)
 end
 
+local function get_dynamic_weapon_ids()
+    local ids = mod:get("dynamic_weapon_ids")
+    return type(ids) == "table" and ids or {}
+end
+
+local function save_dynamic_weapon_ids(ids)
+    mod:set("dynamic_weapon_ids", ids, true)
+end
+
+local function register_dynamic_weapon_id(id)
+    if not id or id == "" or id == "global_ranged" then return end
+
+    local dynamic_ids = get_dynamic_weapon_ids()
+    for _, dynamic_id in ipairs(dynamic_ids) do
+        if dynamic_id == id then return end
+    end
+
+    table.insert(dynamic_ids, id)
+    save_dynamic_weapon_ids(dynamic_ids)
+end
+
 local function remove_weapon_profile(weapon_name)
     if not weapon_name or weapon_name == "" then return end
     local profiles = weapon_profiles()
@@ -462,6 +483,10 @@ local function detected_weapon_profile_name()
 
     local full_id = count > 0 and table.concat(_profile_identifiers, "|", 1, count) or nil
     local display_name = (subject_template and (subject_template.name or subject_template.base_template_name)) or (subject_weapon and subject_weapon.name) or subject_reference
+
+    if display_name then
+        register_dynamic_weapon_id(display_name)
+    end
 
     return full_id, display_name
 end

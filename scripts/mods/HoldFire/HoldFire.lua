@@ -100,7 +100,7 @@ local function get_dynamic_weapon_ids()
 end
 
 local function save_dynamic_weapon_ids(ids)
-    mod:set(true, ids, "dynamic_weapon_ids")
+    mod:set("dynamic_weapon_ids", ids, true)
 end
 
 local function register_dynamic_weapon_id(id)
@@ -256,8 +256,8 @@ local BLOCKED_INPUTS = {
 
 PER_WEAPON_SETTING_DEFAULTS = {
     ads_filter = "ads_hip",
-    target_radius = 0.10,
-    destructible_radius = 0.10,
+    target_radius = 0.07,
+    destructible_radius = 0.08,
     target_elites = true,
     target_specials = true,
     target_bosses = true,
@@ -274,8 +274,8 @@ ALL_SETTING_DEFAULTS = {
     toggle_ads_filter_keybind = {},
     purge_weapon_profiles = false,
     ads_filter = "ads_hip",
-    target_radius = 0.10,
-    destructible_radius = 0.10,
+    target_radius = 0.07,
+    destructible_radius = 0.08,
     target_elites = true,
     target_specials = true,
     target_bosses = true,
@@ -744,8 +744,8 @@ local function hovered_priority_target()
         return false
     end
 
-    local h_tol = math_clamp(s.target_radius or 0.1, 0.01, 0.2)
-    local v_tol = math_clamp(h_tol * 0.5, 0.008, 0.1)
+    local h_tol = math_clamp(s.target_radius or 0.07, 0.01, 0.2)
+    local v_tol = math_clamp(h_tol * 0.35, 0.008, 0.1)
     local smart_tagging = not s.target_normals
     local enemy_template = ENEMY_SMART_TARGETING_TEMPLATE.precision_target
     if enemy_template.within_distance_to_box_x ~= h_tol or enemy_template.within_distance_to_box_y ~= v_tol or enemy_template.smart_tagging ~= smart_tagging then
@@ -781,8 +781,8 @@ local function hovered_priority_target()
         if not s.target_destructibles then
             cached_priority_target = false
         else
-            local dh_tol = math_clamp(s.destructible_radius or 0.1, 0.01, 0.2)
-            local dv_tol = math_clamp(dh_tol * 0.4, 0.006, 0.08)
+            local dh_tol = math_clamp(s.destructible_radius or 0.08, 0.01, 0.2)
+            local dv_tol = math_clamp(dh_tol * 0.35, 0.006, 0.08)
             local obj_template = OBJECT_SMART_TARGETING_TEMPLATE.precision_target
             if obj_template.within_distance_to_box_x ~= dh_tol or obj_template.within_distance_to_box_y ~= dv_tol then
                 obj_template.within_distance_to_box_x = dh_tol
@@ -940,18 +940,14 @@ end)
 
 mod.on_game_state_changed = function(status, state_name)
     if status == "enter" then
-        mod:debug("Enter " .. state_name)
         if state_name == "StateMainMenu" then
             reset_weapon_state()
             apply_weapon_profile("global_ranged")
         elseif state_name == "GameplayStateRun" then
             local detected, display_name = detected_weapon_profile_name()
             if detected then
-                mod:debug("Found " .. display_name)
                 cached_weapon_profile_name = detected
                 apply_weapon_profile(detected, display_name)
-            else
-                mod:debug("No weapons found!!")
             end
         end
     end

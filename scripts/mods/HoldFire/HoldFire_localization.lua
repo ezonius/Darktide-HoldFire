@@ -88,6 +88,12 @@ local localizations = {
 	enable_skitarius_omnissiah_hook_description = {
 		en = "When enabled, HoldFire will also block inputs from the Skitarius mod if no valid target is present.",
 	},
+	enable_crosshair_tint = {
+		en = "Enable Crosshair Tint",
+	},
+	enable_crosshair_tint_description = {
+		en = "When enabled, the crosshair will turn red when HoldFire allows firing (valid target detected).",
+	},
 	target_elites = {
 		en = "Target Elites",
 	},

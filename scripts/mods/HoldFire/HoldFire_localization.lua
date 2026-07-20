@@ -50,7 +50,7 @@ local localizations = {
 		en = "Any Hitbox",
 	},
 	hitbox_head = {
-		en = "Head Only",
+		en = "Weakspot Only",
 	},
 	hitbox_chest = {
 		en = "Torso Only",

@@ -4,11 +4,14 @@ local mod = get_mod("HoldFire")
 
 local Breed = require("scripts/utilities/breed")
 local HazardPropSettings = require("scripts/settings/hazard_prop/hazard_prop_settings")
+local Recoil = require("scripts/utilities/recoil")
+local Sway = require("scripts/utilities/sway")
 local WeaponTemplate = require("scripts/utilities/weapon/weapon_template")
 
 -- Performance: Cache frequently used globals and functions
 local HEALTH_ALIVE = HEALTH_ALIVE
 local Managers = Managers
+local Quaternion = Quaternion
 local ScriptUnit = ScriptUnit
 local Unit = Unit
 local Actor = Actor
@@ -70,6 +73,9 @@ local current_settings = {}
 local PER_WEAPON_SETTING_DEFAULTS
 local ALL_SETTING_DEFAULTS
 local PROFILE_KEY_SCHEMA_VERSION = 3
+
+local Quaternion_rotate = Quaternion.rotate
+local Quaternion_identity = Quaternion.identity
 
 -- Helper functions
 local function clone_setting_value(value)
@@ -536,6 +542,48 @@ local function ads_filter_allows(is_adsing)
     return true
 end
 
+local function unit_data_extension(unit)
+	return unit and ScriptUnit_has_extension(unit, "unit_data_system") or nil
+end
+
+local function weapon_recoil_sway_offset()
+	local unit = local_player_unit()
+
+	if not unit then
+		return nil
+	end
+
+	local weapon_extension = ScriptUnit_has_extension(unit, "weapon_system")
+
+	if not weapon_extension then
+		return nil
+	end
+
+	local unit_data = unit_data_extension(unit)
+
+	if not unit_data then
+		return nil
+	end
+
+	local recoil_template = weapon_extension:recoil_template()
+	local recoil_component = unit_data:read_component("recoil")
+	local movement_state_component = unit_data:read_component("movement_state")
+	local locomotion_component = unit_data:read_component("locomotion")
+	local inair_state_component = unit_data:read_component("inair_state")
+	local base_rotation = Quaternion_identity()
+	local with_recoil = Recoil.apply_weapon_recoil_rotation(recoil_template, recoil_component, movement_state_component, locomotion_component, inair_state_component, base_rotation)
+
+	if not with_recoil then
+		return nil
+	end
+
+	local sway_template = weapon_extension:sway_template()
+	local sway_component = unit_data:read_component("sway")
+	local with_sway = Sway.apply_sway_rotation(sway_template, sway_component, with_recoil)
+
+	return with_sway or nil
+end
+
 local _last_weapon_template = nil
 local _last_ranged_weapon = nil
 
@@ -722,6 +770,10 @@ local function raycasted_destructible_target()
 
     local physics_world = player_smart_targeting_extension._physics_world
     local ray_origin, forward = player_smart_targeting_extension:_targeting_parameters()
+    local offset = weapon_recoil_sway_offset()
+    if offset then
+        forward = Quaternion_rotate(offset, forward)
+    end
     local hits = PhysicsWorld.raycast(physics_world, ray_origin, forward, MAX_TARGET_RAYCAST_DISTANCE, "all", "types",
         "both", "collision_filter", SHOOTING_RAYCAST_FILTER)
     if not hits then return false end
@@ -803,6 +855,12 @@ local function hovered_priority_target()
     end
 
     local ray_origin, forward, right, up = player_smart_targeting_extension:_targeting_parameters()
+    local offset = weapon_recoil_sway_offset()
+    if offset then
+        forward = Quaternion_rotate(offset, forward)
+        right = Quaternion_rotate(offset, right)
+        up = Quaternion_rotate(offset, up)
+    end
     player_smart_targeting_extension._precision_target_aim_assist:update_precision_target(
         player_smart_targeting_extension._unit, ENEMY_SMART_TARGETING_TEMPLATE, ray_origin, forward, right, up,
         player_smart_targeting_extension._smart_tag_targeting_data, current_frame,

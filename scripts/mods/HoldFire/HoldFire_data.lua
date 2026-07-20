@@ -43,12 +43,6 @@ return {
 						default_value = true,
 					},
 					{
-						setting_id = "enable_crosshair_tint",
-						type = "checkbox",
-						default_value = true,
-						tooltip = "enable_crosshair_tint_description",
-					},
-					{
 						setting_id = "purge_weapon_profiles",
 						type = "checkbox",
 						default_value = false,

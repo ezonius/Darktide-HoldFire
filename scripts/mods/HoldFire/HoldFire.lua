@@ -255,8 +255,6 @@ local OBJECT_SMART_TARGETING_TEMPLATE = {
     },
 }
 
-local CROSSHAIR_READY_RED = { 255, 220, 32, 32 }
-
 local BLOCKED_INPUTS = {
     action_one_hold = true,
     action_one_pressed = true,
@@ -277,7 +275,6 @@ PER_WEAPON_SETTING_DEFAULTS = {
 ALL_SETTING_DEFAULTS = {
     enable_mod = true,
     enable_skitarius_omnissiah_hook = true,
-    enable_crosshair_tint = true,
     load_current_weapon_settings = false,
     ranged_weapon_selection = "global_ranged",
     toggle_mod_keybind = {},
@@ -931,47 +928,6 @@ mod:hook_safe(CLASS.PlayerUnitWeaponExtension, "fixed_update", function(self, un
     end
 end)
 
-mod:hook_safe(CLASS.HudElementCrosshair, "update", function(self)
-    if not setting_enabled or not mod:is_enabled() or not current_settings.enable_crosshair_tint then return end
-
-    local widget = self._widget
-    if not widget or not widget.style then return end
-
-    -- Crosshair tinting based on hovered target
-    local ads_input = current_ads_input_state()
-    local ads_filtering = ads_filter_allows(ads_input)
-    local should_tint = is_ranged_wielded_cached and ads_filtering and
-        should_allow_fire_now(ads_filtering) and hovered_priority_target()
-    local content = widget.content
-    if not content then
-        content = {}
-        widget.content = content
-    end
-    local tint_cache = content.holdfire_tint_cache
-    if not tint_cache then
-        tint_cache = {}
-        content.holdfire_tint_cache = tint_cache
-    end
-
-    local style = widget.style
-    for style_name, style_data in pairs(style) do
-        local color = style_data.color
-        if color and string_sub(style_name, 1, 4) ~= "hit_" then
-            if should_tint then
-                if not tint_cache[style_name] then
-                    tint_cache[style_name] = { color[1], color[2], color[3], color[4] }
-                end
-                color[1], color[2], color[3], color[4] = CROSSHAIR_READY_RED[1], CROSSHAIR_READY_RED[2],
-                    CROSSHAIR_READY_RED[3], CROSSHAIR_READY_RED[4]
-            elseif tint_cache[style_name] then
-                local orig = tint_cache[style_name]
-                color[1], color[2], color[3], color[4] = orig[1], orig[2], orig[3], orig[4]
-                tint_cache[style_name] = nil
-            end
-        end
-    end
-end)
-
 mod:hook(CLASS.InputService, "_get", input_hook)
 mod:hook(CLASS.InputService, "_get_simulate", input_hook)
 
@@ -1070,8 +1026,6 @@ mod.on_setting_changed = function(setting_id) if applying_weapon_profile then re
         refresh_enabled_setting()
     elseif setting_id == "enable_skitarius_omnissiah_hook" then
         current_settings.enable_skitarius_omnissiah_hook = mod:get(setting_id)
-    elseif setting_id == "enable_crosshair_tint" then
-        current_settings.enable_crosshair_tint = mod:get(setting_id)
     elseif setting_id == "load_current_weapon_settings" then
         if mod:get("load_current_weapon_settings") then
             local detected, display_name = detected_weapon_profile_name()
@@ -1123,7 +1077,4 @@ if current_settings.enable_skitarius_omnissiah_hook == nil then
     current_settings.enable_skitarius_omnissiah_hook = ALL_SETTING_DEFAULTS.enable_skitarius_omnissiah_hook
 end
 
-current_settings.enable_crosshair_tint = mod:get("enable_crosshair_tint")
-if current_settings.enable_crosshair_tint == nil then
-    current_settings.enable_crosshair_tint = ALL_SETTING_DEFAULTS.enable_crosshair_tint
-end
+

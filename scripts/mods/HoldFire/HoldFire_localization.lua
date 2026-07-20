@@ -40,6 +40,24 @@ local localizations = {
 	target_radius_description = {
 		en = "Controls how strict HoldFire is about an enemy target being under the crosshair. Higher values are more permissive.",
 	},
+	target_hitbox = {
+		en = "Target Hitbox Filter",
+	},
+	target_hitbox_description = {
+		en = "Limit fire-blocking to only trigger when aiming at specific body parts of the target.",
+	},
+	hitbox_any = {
+		en = "Any Hitbox",
+	},
+	hitbox_head = {
+		en = "Head Only",
+	},
+	hitbox_chest = {
+		en = "Torso Only",
+	},
+	hitbox_head_chest = {
+		en = "Head or Torso",
+	},
 	destructible_radius = {
 		en = "Destructible Lock Tolerance",
 	},

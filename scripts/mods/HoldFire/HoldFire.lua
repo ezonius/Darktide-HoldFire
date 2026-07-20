@@ -18,6 +18,8 @@ local string_find = string.find
 local string_sub = string.sub
 local table_clear = table.clear
 local math_clamp = math.clamp
+local math_acos = math.acos
+local math_atan2 = math.atan2
 local math_huge = math.huge
 local pairs = pairs
 local ipairs = ipairs
@@ -37,6 +39,11 @@ local HAZARD_STATE = HazardPropSettings.hazard_state
 local HERETIC_IDOL_COLLECTIBLE_TYPE = "heretic_idol"
 local DESTRUCTIBLE_BROADPHASE_CATEGORY = "destructibles"
 local DESTRUCTIBLE_NEARBY_RADIUS = 2.5
+local TARGET_NODES = {
+    head = "enemy_aim_target_03",
+    torso = "enemy_aim_target_02",
+}
+local HITBOX_CORRECTION_RADIUS = 0.2
 local TARGETABLE_HAZARD_STATE = {
     [HAZARD_STATE.idle] = true,
     [HAZARD_STATE.triggered] = true,
@@ -258,6 +265,7 @@ local BLOCKED_INPUTS = {
 PER_WEAPON_SETTING_DEFAULTS = {
     ads_filter = "ads_hip",
     target_radius = 0.07,
+    target_hitbox = "any",
     destructible_radius = 0.08,
     target_elites = true,
     target_specials = true,
@@ -277,6 +285,7 @@ ALL_SETTING_DEFAULTS = {
     purge_weapon_profiles = false,
     ads_filter = "ads_hip",
     target_radius = 0.07,
+    target_hitbox = "any",
     destructible_radius = 0.08,
     target_elites = true,
     target_specials = true,
@@ -732,6 +741,42 @@ local function raycasted_destructible_target()
     return false
 end
 
+local function is_aiming_at_hitbox(unit, ray_origin, forward, hitbox_filter, h_tol)
+    if not hitbox_filter or hitbox_filter == "any" then return true end
+
+    local nodes = {}
+    if hitbox_filter == "head" then
+        nodes[#nodes + 1] = TARGET_NODES.head
+    elseif hitbox_filter == "chest" then
+        nodes[#nodes + 1] = TARGET_NODES.torso
+    elseif hitbox_filter == "head_chest" then
+        nodes[#nodes + 1] = TARGET_NODES.head
+        nodes[#nodes + 1] = TARGET_NODES.torso
+    end
+
+    for i = 1, #nodes do
+        local node_name = nodes[i]
+        local has_node = Unit.has_node(unit, node_name)
+        if has_node then
+            local node_pos = Unit.world_position(unit, Unit.node(unit, node_name))
+            local to_node = node_pos - ray_origin
+            local distance = Vector3.length(to_node)
+            if distance > 0 then
+                local direction = Vector3.normalize(to_node)
+                local dot = Vector3.dot(forward, direction)
+                local angle = math_acos(math_clamp(dot, -1, 1))
+                local effective_tol = h_tol + math_atan2(HITBOX_CORRECTION_RADIUS, distance)
+
+                if angle <= effective_tol then
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
+end
+
 local function hovered_priority_target()
     if not player_smart_targeting_extension then return false end
 
@@ -782,6 +827,10 @@ local function hovered_priority_target()
             cached_priority_target = s.target_elites
         else
             cached_priority_target = s.target_normals
+        end
+
+        if cached_priority_target and s.target_hitbox ~= "any" then
+            cached_priority_target = is_aiming_at_hitbox(target_unit, ray_origin, forward, s.target_hitbox, h_tol)
         end
     else
         if not s.target_destructibles then

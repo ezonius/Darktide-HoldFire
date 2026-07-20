@@ -174,6 +174,17 @@ return {
 						},
 					},
 					{
+						setting_id = "target_hitbox",
+						type = "dropdown",
+						default_value = "any",
+						options = {
+							{ text = "hitbox_any", value = "any" },
+							{ text = "hitbox_head", value = "head" },
+							{ text = "hitbox_chest", value = "chest" },
+							{ text = "hitbox_head_chest", value = "head_chest" },
+						},
+					},
+					{
 						setting_id = "target_radius",
 						type = "numeric",
 						default_value = 0.070,

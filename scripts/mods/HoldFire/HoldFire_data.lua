@@ -212,11 +212,16 @@ return {
 						type = "checkbox",
 						default_value = true,
 					},
-					{
-						setting_id = "target_destructibles",
-						type = "checkbox",
-						default_value = true,
-					},
+{
+					setting_id = "target_destructibles",
+					type = "checkbox",
+					default_value = true,
+				},
+				{
+					setting_id = "compensate_recoil",
+					type = "checkbox",
+					default_value = true,
+				},
 				},
 			},
 		},

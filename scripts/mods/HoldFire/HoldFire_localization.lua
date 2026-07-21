@@ -142,6 +142,12 @@ local localizations = {
 	load_current_weapon_settings_description = {
 		en = "Loads settings for currently equipped ranged weapon. Set to off once loaded.",
 	},
+	compensate_recoil = {
+		en = "Compensate Recoil/Sway",
+	},
+	compensate_recoil_description = {
+		en = "Adjust crosshair targeting to account for weapon recoil and sway. Disable to use only the visual crosshair direction.",
+	},
 }
 
 local family_prefix = "loc_weapon_family_"

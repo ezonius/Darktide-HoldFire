@@ -282,6 +282,7 @@ PER_WEAPON_SETTING_DEFAULTS = {
     target_bosses = true,
     target_normals = true,
     target_destructibles = true,
+    compensate_recoil = true,
 }
 
 ALL_SETTING_DEFAULTS = {
@@ -301,6 +302,7 @@ ALL_SETTING_DEFAULTS = {
     target_bosses = true,
     target_normals = true,
     target_destructibles = true,
+    compensate_recoil = true,
 }
 
 local BLOCKED_ACTION_TOKENS = {
@@ -776,9 +778,11 @@ local function raycasted_destructible_target()
 
     local physics_world = player_smart_targeting_extension._physics_world
     local ray_origin, forward = player_smart_targeting_extension:_targeting_parameters()
-    local offset = weapon_recoil_sway_offset()
-    if offset then
-        forward = Quaternion_rotate(offset, forward)
+    if current_settings.compensate_recoil then
+        local offset = weapon_recoil_sway_offset()
+        if offset then
+            forward = Quaternion_rotate(offset, forward)
+        end
     end
     local hits = PhysicsWorld.raycast(physics_world, ray_origin, forward, MAX_TARGET_RAYCAST_DISTANCE, "all", "types",
         "both", "collision_filter", SHOOTING_RAYCAST_FILTER)
@@ -881,11 +885,13 @@ local function hovered_priority_target()
     end
 
     local ray_origin, forward, right, up = player_smart_targeting_extension:_targeting_parameters()
-    local offset = weapon_recoil_sway_offset()
-    if offset then
-        forward = Quaternion_rotate(offset, forward)
-        right = Quaternion_rotate(offset, right)
-        up = Quaternion_rotate(offset, up)
+    if current_settings.compensate_recoil then
+        local offset = weapon_recoil_sway_offset()
+        if offset then
+            forward = Quaternion_rotate(offset, forward)
+            right = Quaternion_rotate(offset, right)
+            up = Quaternion_rotate(offset, up)
+        end
     end
     player_smart_targeting_extension._precision_target_aim_assist:update_precision_target(
         player_smart_targeting_extension._unit, ENEMY_SMART_TARGETING_TEMPLATE, ray_origin, forward, right, up,
